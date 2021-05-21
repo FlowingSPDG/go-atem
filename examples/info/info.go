@@ -8,9 +8,8 @@ package main
 import (
 	"flag"
 	"log"
-	"time"
 
-	"github.com/bdogan/go-atem"
+	"github.com/FlowingSPDG/go-atem"
 )
 
 var (
@@ -24,28 +23,7 @@ type app struct {
 
 func (at *app) onAtemConnected() {
 	log.Printf("ATEM connected at %s. UID:%d\n", at.atemClient.Ip, at.atemClient.UID)
-
-	at.atemClient.SetProgramInput(atem.VideoBlack, 0)
-	at.atemClient.SetPreviewInput(atem.VideoBlack, 0)
-
-	setPgm := true
-	input := atem.VideoInput1
-
-	for at.atemClient.Connected() {
-		time.Sleep(time.Millisecond * 100)
-		if setPgm {
-			at.atemClient.SetProgramInput(input, 0)
-		} else {
-			at.atemClient.SetPreviewInput(input, 0)
-		}
-
-		input++
-
-		if input == atem.VideoInput9 {
-			input = atem.VideoInput1
-			setPgm = !setPgm
-		}
-	}
+	log.Printf("Product ID: %s, Protocol Version: %s\n", at.atemClient.ProductId.String(), at.atemClient.ProtocolVersion.String())
 }
 
 func (at *app) onAtemClosed() {

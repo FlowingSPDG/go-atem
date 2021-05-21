@@ -7,13 +7,15 @@ package main
 
 import (
 	"flag"
-	"github.com/bdogan/go-atem"
 	"log"
+	"time"
+
+	"github.com/FlowingSPDG/go-atem"
 )
 
 var (
-	ipAddress 	= flag.String("ip", "", "Atem switcher ipv4 address")
-	debug		= flag.Bool("debug", false, "Connection debugging")
+	ipAddress = flag.String("ip", "", "Atem switcher ipv4 address")
+	debug     = flag.Bool("debug", false, "Connection debugging")
 )
 
 type app struct {
@@ -22,7 +24,28 @@ type app struct {
 
 func (at *app) onAtemConnected() {
 	log.Printf("ATEM connected at %s. UID:%d\n", at.atemClient.Ip, at.atemClient.UID)
-	log.Printf("Product ID: %s, Protocol Version: %s\n", at.atemClient.ProductId.String(), at.atemClient.ProtocolVersion.String())
+
+	at.atemClient.SetProgramInput(atem.VideoBlack, 0)
+	at.atemClient.SetPreviewInput(atem.VideoBlack, 0)
+
+	setPgm := true
+	input := atem.VideoInput1
+
+	for at.atemClient.Connected() {
+		time.Sleep(time.Millisecond * 100)
+		if setPgm {
+			at.atemClient.SetProgramInput(input, 0)
+		} else {
+			at.atemClient.SetPreviewInput(input, 0)
+		}
+
+		input++
+
+		if input == atem.VideoInput9 {
+			input = atem.VideoInput1
+			setPgm = !setPgm
+		}
+	}
 }
 
 func (at *app) onAtemClosed() {
