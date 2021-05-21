@@ -4,7 +4,7 @@ BlackMagicDesign ATEM switcher protocol implementation. Written in go.
 
 ## Installation
 ```sh
-go get -u github.com/bdogan/go-atem
+go get -u github.com/FlowingSPDG/go-atem
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ package main
 import (
 	"log"
 	
-	"github.com/bdogan/go-atem"
+	"github.com/FlowingSPDG/go-atem"
 )
 
 type app struct {
