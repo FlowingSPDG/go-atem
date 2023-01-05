@@ -102,12 +102,15 @@ func (a *Atem) Connect() error {
 	a.writePacket(newConnectCmd(a.UID))
 
 	// Read hi packet
-	p, err := a.readPacket(time.Now().Add(time.Millisecond * 100))
-	if err != nil || p == nil || !p.is(connectCommand) || p.body[0] != 0x2 {
+	p, err := a.readPacket(time.Now().Add(time.Millisecond * 500))
+	if err != nil {
+		return err
+	}
+	if len(p.body) <= 0 {
+		return errors.New("Unknown body length")
+	}
+	if !p.is(connectCommand) || p.body[0] != 0x2 {
 		a.State = Closed
-		if err != nil {
-			return err
-		}
 		return errors.New("unable to connect device")
 	}
 	a.UID = p.uid
