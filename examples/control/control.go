@@ -7,6 +7,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -56,6 +57,7 @@ func main() {
 	// Parse flag
 	flag.Parse()
 
+	fmt.Println("Connecting to", *ipAddress)
 	// Create app
 	app := app{
 		atemClient: atem.Create(*ipAddress, *debug),
@@ -68,5 +70,7 @@ func main() {
 	app.atemClient.On("closed", app.onAtemClosed)
 
 	// Make connection
-	app.atemClient.Connect()
+	if err := app.atemClient.Connect(); err != nil {
+		panic(err)
+	}
 }
