@@ -1,16 +1,22 @@
 package atem
 
+import (
+	"encoding/binary"
+)
+
 const (
 	syncCommand         uint16 = 1
 	connectCommand      uint16 = 2
 	connectRetryCommand uint16 = 6
-	resendCommand       uint16 = 0x4
-	requestNextAfter    uint16 = 0x8
+	successCommand      uint16 = 0x02
+	resendCommand       uint16 = 0x04
+	requestNextAfter    uint16 = 0x08
 	ackCommand          uint16 = 0x10
 )
 
 type atemPacket struct {
-	flag          uint16
+	flag uint16 // TODO: make it uint8 since it only uses 5bits
+	// length uint16 // TODO: Add this field
 	uid           uint16
 	ackResponseID uint16
 	ackRequestID  uint16
@@ -18,12 +24,12 @@ type atemPacket struct {
 	body          []byte
 }
 
-func newSyncCommand(uid uint16, requestId uint16) *atemPacket {
+func newSyncCommand(uid uint16, requestID uint16) *atemPacket {
 	return &atemPacket{
 		flag:          syncCommand,
 		uid:           uid,
 		ackResponseID: 0,
-		ackRequestID:  requestId,
+		ackRequestID:  requestID,
 		header:        [4]byte{0, 0, 0, 0},
 	}
 }
@@ -51,12 +57,13 @@ func newAckCmd(uid uint16, ackResponseID uint16) *atemPacket {
 }
 
 func parsePacket(msg []byte) *atemPacket {
+	// https://docs.openswitcher.org/udptransport.html#anatomy-of-a-packet
 	return &atemPacket{
-		flag:          uint16(msg[0] >> 3),
-		uid:           uint16((uint16(msg[2]) << 8) | uint16(msg[3])),
-		ackResponseID: uint16((uint16(msg[4]) << 8) | uint16(msg[5])),
-		ackRequestID:  uint16((uint16(msg[10]) << 8) | uint16(msg[11])),
+		flag:          binary.BigEndian.Uint16(msg[0:1]),
+		uid:           binary.BigEndian.Uint16(msg[2:3]),
+		ackResponseID: binary.BigEndian.Uint16(msg[4:5]),
 		header:        [4]byte{msg[6], msg[7], msg[8], msg[9]},
+		ackRequestID:  binary.BigEndian.Uint16(msg[10:11]),
 		body:          msg[12:]}
 }
 
@@ -97,7 +104,8 @@ func (ap *atemPacket) hasBody() bool {
 }
 
 func (ap *atemPacket) toBytes() []byte {
-	var result []byte
+	// 12 = header length
+	result := make([]byte, 0, 12+len(ap.body))
 
 	// Set flag & length
 	result = append(result, []byte{uint8((ap.flag << 3) | ((ap.length() >> 8) & 0x7)), uint8(ap.length() & 0xFF)}...)

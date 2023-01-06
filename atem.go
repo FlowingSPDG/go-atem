@@ -1,6 +1,7 @@
 package atem
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -75,7 +76,7 @@ func Create(Ip string, Debug bool) *Atem {
 
 // Public Zone Start
 
-func (a *Atem) Connect() error {
+func (a *Atem) Connect(ctx context.Context) error {
 	// Check already connected
 	if a.State != Closed {
 		return errors.New("already connected to server: " + a.Ip)
@@ -98,22 +99,34 @@ func (a *Atem) Connect() error {
 	}
 	a.State = Open
 
-	// Send hello packet
-	a.writePacket(newConnectCmd(a.UID))
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			// Send hello packet
+			a.writePacket(newConnectCmd(a.UID))
 
-	// Read hi packet
-	p, err := a.readPacket(time.Now().Add(time.Millisecond * 500))
-	if err != nil {
-		return err
+			// Read hi packet
+			p, err := a.readPacket(time.Now().Add(time.Millisecond * 500))
+			if err != nil {
+				return err
+			}
+			if len(p.body) <= 0 {
+				return errors.New("Unknown body length")
+			}
+			if p.is(resendCommand) {
+				// retry if 0x04
+				continue
+			}
+			if !p.is(connectCommand) {
+				a.State = Closed
+				return errors.New("unable to connect device")
+			}
+			a.UID = p.uid
+			break
+		}
 	}
-	if len(p.body) <= 0 {
-		return errors.New("Unknown body length")
-	}
-	if !p.is(connectCommand) || p.body[0] != 0x2 {
-		a.State = Closed
-		return errors.New("unable to connect device")
-	}
-	a.UID = p.uid
 
 	// Send OK
 	a.writePacket(newAckCmd(a.UID, 0))
